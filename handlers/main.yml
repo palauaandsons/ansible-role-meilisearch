@@ -4,6 +4,6 @@
     daemon_reload: 'yes'
 
 - name: "restart meilisearch"
-  ansible.builtin.service:
+  service:
     name: meilisearch
     state: restarted
