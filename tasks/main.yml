@@ -1,24 +1,24 @@
 ---
 - name: "Preflight - Fail if target host is not stable for this Role."
-  ansible.builtin.fail:
+  fail:
     msg: "This role is not stable for the target operating system, {{ ansible_distribution }} {{ ansible_distribution_major_version }}."
   when: (ansible_distribution is not defined) or
         (ansible_distribution_version is not defined) or
         (ansible_distribution+" "+ansible_distribution_major_version not in meilisearch_stable_os)
 
 - name: "Register MeiliSearch Installation Status."
-  ansible.builtin.stat:
+  stat:
     path: "{{ meilisearch_exe_path }}"
   register: meilisearch_status
 
 - name: "Create Meilisearch Group."
-  ansible.builtin.group:
+  group:
     name: "{{ meilisearch_group }}"
     system: 'yes'
     state: present
 
 - name: "Create Meilisearch User."
-  ansible.builtin.user:
+  user:
     name: "{{ meilisearch_user }}"
     password_lock: 'yes'
     groups: "{{ meilisearch_group }}"
@@ -27,7 +27,7 @@
     state: present
 
 - name: "Get MeiliSearch Installation Script."
-  ansible.builtin.get_url:
+  get_url:
     url: https://install.meilisearch.com
     dest: "/tmp/meilisearch.sh"
     mode: 0750
@@ -35,28 +35,28 @@
   when: not meilisearch_status.stat.exists | bool
 
 - name: "Run MeiliSearch Installation Script."
-  ansible.builtin.shell: /tmp/meilisearch.sh
+  shell: /tmp/meilisearch.sh
   args:
     chdir: /tmp
     # warn: 'false'
   when: not meilisearch_status.stat.exists | bool
 
 - name: "Move MeiliSearch Binary into Place."
-  ansible.builtin.shell: mv /tmp/meilisearch "{{ meilisearch_exe_path }}"
+  shell: mv /tmp/meilisearch "{{ meilisearch_exe_path }}"
   args:
     chdir: /tmp
     # warn: 'false'
   when: not meilisearch_status.stat.exists | bool
 
 - name: "Ensure Permissions on MeiliSearch Binary."
-  ansible.builtin.file:
+  file:
     path: "{{ meilisearch_exe_path }}"
     mode: 0750
     owner: "{{ meilisearch_user }}"
     group: "{{ meilisearch_group }}"
 
 - name: "Ensure MeiliSearch DB Directory exists."
-  ansible.builtin.file:
+  file:
     path: "{{ item }}"
     mode: 0750
     owner: "{{ meilisearch_user }}"
@@ -69,7 +69,7 @@
     - "{{ meilisearch_cfg_snapshot_dir }}"
 
 - name: "Copy MeiliSearch config file."
-  ansible.builtin.template:
+  template:
     src: config.toml.j2
     dest: "{{ meilisearch_configfile }}"
     owner: root
@@ -79,7 +79,7 @@
     - restart meilisearch
 
 - name: "Copy MeiliSearch systemd unit file into place."
-  ansible.builtin.template:
+  template:
     src: meilisearch.unit.j2
     dest: /etc/systemd/system/meilisearch.service
     owner: root
@@ -91,7 +91,7 @@
     - restart meilisearch
 
 - name: "Configure the MeiliSearch Service."
-  ansible.builtin.service:
+  service:
     name: meilisearch
     state: "{{ meilisearch_state }}"
     enabled: "{{ meilisearch_enabled_at_boot }}"
